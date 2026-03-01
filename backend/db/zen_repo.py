@@ -45,3 +45,18 @@ class ZenRepository:
         query = "SELECT STATUS, SUBJECT, PRIORITY FROM ZEN_TICKETS WHERE TICKET_ID = ?"
         result = self.session.sql(query, params=[ticket_id]).collect()
         return result[0].as_dict() if result else None
+
+    def get_ticket_messages(self, ticket_id: str):
+        query = """
+            SELECT SENDER_ROLE as role, CONTENT as content 
+            FROM ZEN_MESSAGES 
+            WHERE TICKET_ID = ? 
+            ORDER BY CREATED_AT ASC
+        """
+        results = self.session.sql(query, params=[ticket_id]).collect()
+        # Normalize SENDER_ROLE (e.g., 'AGENT_AI' -> 'assistant', 'USER' -> 'user')
+        messages = []
+        for row in results:
+            role = "user" if row['ROLE'] == 'USER' else "assistant"
+            messages.append({"role": role, "content": row['CONTENT']})
+        return messages

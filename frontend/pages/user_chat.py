@@ -1,7 +1,14 @@
 import streamlit as st
 from backend.agent import run_agent
+from backend.db.zen_repo import ZenRepository #
+
+@st.cache_resource
+def get_repo():
+    return ZenRepository()
 
 def render_user_chat():
+    repo = get_repo()
+
     # --- STATE INIT ---
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -9,6 +16,18 @@ def render_user_chat():
         st.session_state.ticket_id = None
     if "error_message" not in st.session_state:
         st.session_state.error_message = None
+
+    # --- LOADING LOGIC ---
+    # If we have a ticket_id but no messages yet, it means we are opening an old chat
+    if st.session_state.ticket_id and not st.session_state.messages:
+        with st.spinner("Loading conversation history..."):
+            history = repo.get_ticket_messages(st.session_state.ticket_id)
+            ticket_info = repo.get_ticket_status(st.session_state.ticket_id)
+            
+            if history:
+                st.session_state.messages = history
+            if ticket_info:
+                st.session_state.priority = ticket_info.get("PRIORITY", "LOW")
 
     # --- TOP NAVIGATION BAR ---
     nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
