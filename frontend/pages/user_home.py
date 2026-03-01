@@ -44,20 +44,16 @@ def render_home():
                 margin-top: 0;
            }}
            
-           /* Precise alignment for the status text */
            .status-text-large {{
-                font-size: 26px !important; /* Increased size */
+                font-size: 26px !important; 
                 font-weight: 600 !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                /* This specific margin-top offsets Streamlit's column padding 
-                   to line up the text baseline with the button text baseline */
                 margin-top: 32px !important; 
                 line-height: 1.2 !important;
                 white-space: nowrap;
            }}
 
-           /* Styling the Open Chat button red */
            div[data-testid="stForm"] button[kind="primaryFormSubmit"] {{
                background-color: #ff4b4b !important;
                color: white !important;
@@ -71,12 +67,13 @@ def render_home():
        )
 
     st.markdown('<div class="hero"><h1>Support Desk</h1><h2>How can we help you today?</h2></div>', unsafe_allow_html=True)
-
     st.markdown("<div style='height:40px'></div>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
         if st.button("Raise a Problem", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.loaded_ticket_id = None
             st.session_state.page = "user_chat"
             st.rerun()
 
@@ -93,28 +90,34 @@ def render_home():
             ticket_id = st.text_input("Ticket ID", placeholder="Enter ID...", label_visibility="collapsed")
             status_submit = st.form_submit_button("View Status", use_container_width=True)
             
-            if (status_submit or st.session_state.get("last_searched")) and ticket_id.strip():
+            if status_submit and ticket_id.strip():
                 ticket = repo.get_ticket_status(ticket_id.strip())
-                if ticket:
-                    st.session_state.last_searched = ticket_id.strip()
-                    status_val = ticket['STATUS']
-                    color = '#28a745' if status_val == 'OPEN' else '#6c757d'
-                    
-                    if status_val == "OPEN":
-                        # Adjusting ratio to ensure text and button have enough room
-                        col_left, col_right = st.columns([1.4, 1]) 
-                        with col_left:
-                             # Wrapped in div for better CSS targeting
-                             st.markdown(f'<div class="status-text-large">Status: <span style="color:{color};">{status_val}</span></div>', unsafe_allow_html=True)
-                        with col_right:
-                             if st.form_submit_button("💬 Open Chat", type="primary", use_container_width=True):
-                                st.session_state.ticket_id = ticket_id.strip()
-                                st.session_state.page = "user_chat"
-                                st.rerun()
-                    else:
-                        st.markdown(f'<div class="status-text-large">Status: <span style="color:{color};">{status_val}</span></div>', unsafe_allow_html=True)
+                st.session_state.cached_ticket = ticket
+                st.session_state.last_searched = ticket_id.strip()
+            
+            if st.session_state.get("last_searched") == ticket_id.strip() and st.session_state.get("cached_ticket"):
+                ticket = st.session_state.cached_ticket
+                status_val = ticket['STATUS']
+                color = '#28a745' if status_val == 'OPEN' else '#6c757d'
+                
+                if status_val == "OPEN":
+                    col_left, col_right = st.columns([1.4, 1]) 
+                    with col_left:
+                         st.markdown(f'<div class="status-text-large">Status: <span style="color:{color};">{status_val}</span></div>', unsafe_allow_html=True)
+                    with col_right:
+                         if st.form_submit_button("💬 Open Chat", type="primary", use_container_width=True):
+                            # Reset history if moving to a different ticket
+                            if st.session_state.get("loaded_ticket_id") != ticket_id.strip():
+                                st.session_state.messages = []
+                                st.session_state.loaded_ticket_id = None
+                            
+                            st.session_state.ticket_id = ticket_id.strip()
+                            st.session_state.page = "user_chat"
+                            st.rerun()
                 else:
-                    st.error("Ticket not found")
+                    st.markdown(f'<div class="status-text-large">Status: <span style="color:{color};">{status_val}</span></div>', unsafe_allow_html=True)
+            elif status_submit and not st.session_state.get("cached_ticket"):
+                st.error("Ticket not found")
             else:
                 st.markdown("<div style='height:65px'></div>", unsafe_allow_html=True)
 
