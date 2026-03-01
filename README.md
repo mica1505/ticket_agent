@@ -126,6 +126,14 @@ Or run directly:
 PYTHONPATH=.:backend python scripts/chat_with_agent.py
 ```
 
+### Running the Frontend
+
+Start the ticketing system UI:
+
+```bash
+streamlit run frontend/app.py
+```
+
 ### Usage Example
 
 ```

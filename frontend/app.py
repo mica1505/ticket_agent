@@ -7,7 +7,6 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from pages.user_home import render_home
-from pages.ticket_status import render_ticket_status
 from pages.past_tickets import render_past_tickets
 from pages.user_chat import render_user_chat
 
@@ -30,9 +29,6 @@ if "page" not in st.session_state:
 # --- ROUTER ---
 if st.session_state.page == "home":
     render_home()
-
-elif st.session_state.page == "ticket_status":
-    render_ticket_status()
 
 elif st.session_state.page == "past_tickets":
     render_past_tickets()

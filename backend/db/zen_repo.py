@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from backend.db.snowflake_utils import get_session
 
 class ZenRepository:
@@ -41,3 +40,8 @@ class ZenRepository:
         """
         results = self.session.sql(query).collect()        
         return [row.as_dict() for row in results]
+
+    def get_ticket_status(self, ticket_id: str):
+        query = "SELECT STATUS, SUBJECT, PRIORITY FROM ZEN_TICKETS WHERE TICKET_ID = ?"
+        result = self.session.sql(query, params=[ticket_id]).collect()
+        return result[0].as_dict() if result else None
