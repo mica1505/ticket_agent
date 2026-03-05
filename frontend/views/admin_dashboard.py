@@ -74,13 +74,13 @@ def render_admin_dashboard():
         )
     
     if filter_status:
-        tickets = [t for t in tickets if t['STATUS'] in filter_status]
+        tickets = [t for t in tickets if t.get('STATUS') in filter_status]
 
     if filter_type:
-        tickets = [t for t in tickets if t['TYPE'] in filter_type]
+        tickets = [t for t in tickets if t.get('TYPE') in filter_type]
 
     if filter_queue:
-        tickets = [t for t in tickets if t['QUEUE'] in filter_queue]
+        tickets = [t for t in tickets if t.get('QUEUE') in filter_queue]
 
     # Sorting Logic
     rev = sort_order == "DESC"
