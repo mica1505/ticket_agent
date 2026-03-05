@@ -7,12 +7,23 @@ from backend.db.zen_repo import ZenRepository
 def get_repo():
     return ZenRepository()
 
+@st.cache_data
+def load_tickets():
+    repo = get_repo()
+    return repo.get_user_tickets()
+
+@st.cache_resource
+def get_repo():
+    return ZenRepository()
+
+def extract_values(tickets, field):
+    return sorted({t[field] for t in tickets if t.get(field)})
+
 def render_past_tickets():
     st.markdown("## 📂 Your Ticket History")
 
     try:
-        repo = get_repo()
-        tickets = repo.get_user_tickets()
+        tickets = load_tickets()
 
         if not tickets:
             st.info("You haven't created any tickets yet.")
@@ -22,48 +33,63 @@ def render_past_tickets():
             return
 
         # --- FILTERS & SORTING ---
-        filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1])
-        with filter_col1:
-            filter_status = st.segmented_control(
-                "Filter by Status",
-                options=["All", "OPEN", "CLOSED"],
-                default="All"
+
+        st.markdown("### Filters")
+        all_types = extract_values(tickets, 'TYPE')
+        all_queues = extract_values(tickets, 'QUEUE')
+        all_statuses = extract_values(tickets, 'STATUS')
+        priority_map = {"URGENT": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+        sort_options = {
+        "Last updated": lambda x: x.get('UPDATED_AT') or x['CREATED_AT'],
+        "Creation Date": lambda x: x['CREATED_AT'],
+        "Priority": lambda x: priority_map.get(x['PRIORITY'], 4),
+        "Status": lambda x: x['STATUS'],
+        "Subject": lambda x: x.get('SUBJECT', "")
+        }
+
+        col1, col2, col3, col4, col5 = st.columns([1.5, 2, 2, 2, 1])
+        with col1:
+            filter_status = st.multiselect(
+                "Status",
+                options=all_statuses,
+                placeholder="All statuses"
             )
-        with filter_col2:
+        with col2:
+            filter_type = st.multiselect(
+                "Type",
+                options=all_types,
+                placeholder="All types"
+            )
+        with col3:
+            filter_queue = st.multiselect(
+                "Queue",
+                options=all_queues,
+                placeholder="All queues"
+            )
+        with col4:
             sort_col = st.selectbox(
                 "Sort By",
                 options=["Last updated", "Creation Date", "Priority", "Status", "Subject"]
             )
-        with filter_col3:
-            sort_order = st.radio("Order", ["DESC", "ASC"], horizontal=True)
+        with col5:
+            sort_order = st.radio(
+                "Order",
+                ["DESC", "ASC"],
+                horizontal=True
+            )
 
-        all_types = sorted({t['TYPE'] for t in tickets if t.get('TYPE')})
-        all_queues = sorted({t['QUEUE'] for t in tickets if t.get('QUEUE')})
+        if filter_status:
+            tickets = [t for t in tickets if t['STATUS'] in filter_status]
 
-        extra_col1, extra_col2 = st.columns(2)
-        with extra_col1:
-            filter_types = st.multiselect("Filter by Type", options=all_types, placeholder="All types")
-        with extra_col2:
-            filter_queues = st.multiselect("Filter by Queue", options=all_queues, placeholder="All queues")
+        if filter_type:
+            tickets = [t for t in tickets if t['TYPE'] in filter_type]
 
-        if filter_status != "All":
-            tickets = [t for t in tickets if t['STATUS'] == filter_status]
-        if filter_types:
-            tickets = [t for t in tickets if t.get('TYPE') in filter_types]
-        if filter_queues:
-            tickets = [t for t in tickets if t.get('QUEUE') in filter_queues]
+        if filter_queue:
+            tickets = [t for t in tickets if t['QUEUE'] in filter_queue]
 
         # Sorting Logic
-        priority_map = {"URGENT": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
         rev = sort_order == "DESC"
-        if sort_col == "Priority":
-            tickets.sort(key=lambda x: priority_map.get(x['PRIORITY'], 4), reverse=rev)
-        elif sort_col == "Last updated":
-            tickets.sort(key=lambda x: x.get('UPDATED_AT') or x['CREATED_AT'], reverse=rev)
-        elif sort_col == "Creation Date":
-            tickets.sort(key=lambda x: x['CREATED_AT'], reverse=rev)
-        else:
-            tickets.sort(key=lambda x: str(x.get(sort_col.upper(), "")), reverse=rev)
+        tickets.sort(key=sort_options[sort_col], reverse=rev)
 
         st.divider()
 
