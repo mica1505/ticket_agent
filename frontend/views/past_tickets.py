@@ -111,7 +111,7 @@ def render_past_tickets():
                     with st.container(border=True):
                         st.markdown(f"""
                             <div style='display: flex; justify-content: space-between; align-items: center;'>
-                                <code style='color: #888;'>#{t['TICKET_ID'][:8]}</code>
+                                <code style='color: #888;'>#{t['TICKET_ID']}</code>
                                 <span style='background-color: {status_bg}; color: {status_text};
                                       padding: 2px 10px; border-radius: 20px; font-size: 0.7rem;
                                       font-weight: bold;'>{t['STATUS']}</span>

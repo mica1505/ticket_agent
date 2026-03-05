@@ -7,6 +7,7 @@ def get_repo():
     return ZenRepository()
 
 def render_user_chat():
+    st.cache_data.clear()
     repo = get_repo()
     user_role = st.session_state.get("role", "User")
 
